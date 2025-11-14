@@ -119,3 +119,65 @@ Philadelphia County|Pennsylvania|20924
 -- No, because 3 is the max number for digits and 8 is the allocated digits for decimal.
 -- the given number is too big. Precision must be larger than scale.
 -- numeric(8,3) should be used instead of what was given.
+
+--Chapter 6--
+--1.
+SELECT 3.14 * 5 ^ 2;
+-- No need for parenthesis because exponents take precedence over multiplication.
+
+--2. 
+SELECT county_name AS new_york_county, births_2019 as births, deaths_2019 as deaths, 
+	round(CAST(births_2019 as numeric) / deaths_2019, 2) as birth_death_ratio 
+FROM us_counties_pop_est_2019
+WHERE state_name = 'New York'
+ORDER BY birth_death_ratio DESC;
+-- Rockland county saw the highest ratio of births to deaths.
+
+--3.
+SELECT state_name, percentile_cont(.5) WITHIN GROUP (ORDER BY pop_est_2019) as median
+FROM us_counties_pop_est_2019
+WHERE state_name IN ('California', 'New York')
+GROUP BY state_name
+ORDER BY median DESC;
+-- The 2019 median county pop estimate was higher in California with it being
+-- 187029 greater than 86687
+
+--Chapter 7--
+--1. Concho county
+SELECT c2019.county_name,
+       c2019.state_name,
+       c2019.pop_est_2019 AS pop_2019,
+       c2010.estimates_base_2010 AS pop_2010,
+       c2019.pop_est_2019 - c2010.estimates_base_2010 AS raw_change,
+       round( (c2019.pop_est_2019::numeric - c2010.estimates_base_2010)
+           / c2010.estimates_base_2010 * 100, 1 ) AS pct_change
+FROM us_counties_pop_est_2019 AS c2019
+    JOIN us_counties_pop_est_2010 AS c2010
+ON c2019.state_fips = c2010.state_fips
+    AND c2019.county_fips = c2010.county_fips
+ORDER BY pct_change ASC;
+--2.
+SELECT '2010' as year,
+	state_fips,
+	county_fips,
+	county_name,
+	state_name,
+	estimates_base_2010 AS estimate
+FROM us_counties_pop_est_2010
+UNION
+SELECT '2019' as year,
+	state_fips,
+	county_fips,
+	county_name,
+	state_name,
+	pop_est_2019 AS estimate
+FROM us_counties_pop_est_2019
+ORDER BY state_fips, county_fips, year;
+--3.
+SELECT percentile_cont(.5) WITHIN GROUP (ORDER BY 
+		round( (c2019.pop_est_2019::numeric - c2010.estimates_base_2010)
+        / c2010.estimates_base_2010 * 100, 1 ))
+FROM us_counties_pop_est_2019 AS c2019
+    JOIN us_counties_pop_est_2010 AS c2010
+ON c2019.state_fips = c2010.state_fips
+    AND c2019.county_fips = c2010.county_fips;
